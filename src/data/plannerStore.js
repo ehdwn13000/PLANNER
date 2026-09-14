@@ -1,27 +1,42 @@
-const STORAGE_KEY = "planner_data_v1";
+import { supabase, PLANNER_ROW_ID } from "./supabaseClient";
+
+const TABLE = "planner_data";
 
 function emptyData() {
   return { categories: [], projects: [], items: [], quickNotes: [] };
 }
 
-export function loadData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return emptyData();
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      categories: parsed.categories ?? [],
-      projects: parsed.projects ?? [],
-      items: parsed.items ?? [],
-      quickNotes: parsed.quickNotes ?? [],
-    };
-  } catch {
-    return emptyData();
-  }
+function normalize(parsed) {
+  return {
+    categories: parsed?.categories ?? [],
+    projects: parsed?.projects ?? [],
+    items: parsed?.items ?? [],
+    quickNotes: parsed?.quickNotes ?? [],
+  };
 }
 
-export function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+export async function loadData() {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("data")
+    .eq("id", PLANNER_ROW_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error("플래너 데이터를 불러오지 못했습니다", error);
+    return emptyData();
+  }
+  return normalize(data?.data);
+}
+
+export async function saveData(data) {
+  const { error } = await supabase
+    .from(TABLE)
+    .upsert({ id: PLANNER_ROW_ID, data, updated_at: new Date().toISOString() });
+
+  if (error) {
+    console.error("플래너 데이터를 저장하지 못했습니다", error);
+  }
 }
 
 export function generateId() {

@@ -1,13 +1,31 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
 import { loadData, saveData, generateId } from "../data/plannerStore";
 
 const PlannerContext = createContext(null);
 
+const EMPTY_DATA = { categories: [], projects: [], items: [], quickNotes: [] };
+
 export function PlannerProvider({ children }) {
-  const [data, setData] = useState(() => loadData());
+  const [data, setData] = useState(EMPTY_DATA);
+  const [isLoading, setIsLoading] = useState(true);
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+    loadData().then((loaded) => {
+      if (cancelled) return;
+      setData(loaded);
+      hasLoaded.current = true;
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoaded.current) return;
     saveData(data);
   }, [data]);
 
@@ -166,8 +184,19 @@ export function PlannerProvider({ children }) {
     setData((d) => ({ ...d, quickNotes: d.quickNotes.filter((n) => n.id !== id) }));
   }
 
+  function replaceAll(newData) {
+    setData({
+      categories: newData?.categories ?? [],
+      projects: newData?.projects ?? [],
+      items: newData?.items ?? [],
+      quickNotes: newData?.quickNotes ?? [],
+    });
+  }
+
   const value = {
     data,
+    isLoading,
+    replaceAll,
     addCategory,
     updateCategory,
     reorderCategories,
