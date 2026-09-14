@@ -16,7 +16,10 @@ export default function ItemRow({ item, context, onUpdate, onComplete, onDelete 
     <div className={overdue ? "item-row overdue" : "item-row"}>
       {context && <div className="item-context">{context}</div>}
       <div className="item-row-main">
-        <input type="checkbox" checked={item.completed} onChange={() => onComplete(item.id)} />
+        <label className="checkbox-circle">
+          <input type="checkbox" checked={item.completed} onChange={() => onComplete(item.id)} />
+          <span className="checkbox-face" />
+        </label>
         <input
           className="item-name"
           value={name}

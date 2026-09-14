@@ -12,6 +12,7 @@ Project (Level 2)
 ├─ id: string
 ├─ categoryId: string   // 소속 Category
 ├─ name: string
+├─ note: string         // 자유 메모 (기억해야 할 것들)
 ├─ completed: boolean   // 수동 완료 처리
 ├─ completedAt: string | null
 └─ createdAt: string
@@ -30,6 +31,7 @@ QuickNote (빠른 메모, 계층 없음)
 ├─ id: string
 ├─ text: string
 ├─ tag: "개인" | "업무"
+├─ dueDate: string | null   // 지정 시 주간 뷰(이번 주/다음 주)에도 함께 표시
 ├─ completed: boolean
 └─ createdAt: string
 ```

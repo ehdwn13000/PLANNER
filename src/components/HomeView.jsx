@@ -1,6 +1,16 @@
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { usePlanner } from "../context/PlannerContext";
 import ItemRow from "./ItemRow";
+import NoteModal from "./NoteModal";
 import { confirmDelete } from "../utils/confirm";
 import { categoryColor, projectColor } from "../utils/color";
 
@@ -12,11 +22,51 @@ function computeProgress(items, projectId) {
   return { total, done, percent };
 }
 
+function DragHandle({ attributes, listeners }) {
+  return (
+    <button type="button" className="drag-handle" aria-label="순서 변경" {...attributes} {...listeners}>
+      ⠿
+    </button>
+  );
+}
+
+function SortableItemRow({ item, projectId, onUpdate, onComplete, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    data: { type: "item", projectId },
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="sortable-row">
+      <DragHandle attributes={attributes} listeners={listeners} />
+      <ItemRow item={item} onUpdate={onUpdate} onComplete={onComplete} onDelete={onDelete} />
+    </div>
+  );
+}
+
 function ProjectBlock({ project, items, planner }) {
   const [name, setName] = useState(project.name);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const hasNote = Boolean(project.note && project.note.trim());
   const progress = computeProgress(items, project.id);
   const activeItems = items.filter((i) => i.projectId === project.id && !i.completed);
-  const color = projectColor(project.categoryId, project.id);
+  const categoryProjects = planner.data.projects.filter((p) => p.categoryId === project.categoryId);
+  const color = projectColor(project.categoryId, project.id, planner.data.categories, categoryProjects);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+    data: { type: "project", categoryId: project.categoryId },
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    borderLeftColor: color.border,
+  };
 
   function commitName() {
     const trimmed = name.trim();
@@ -24,14 +74,32 @@ function ProjectBlock({ project, items, planner }) {
     else setName(project.name);
   }
 
+  const itemIds = activeItems.map((i) => i.id);
+
   return (
-    <div className="project-block" style={{ borderLeftColor: color.border }}>
+    <div ref={setNodeRef} style={style} className="project-block">
       <div className="project-header">
+        <DragHandle attributes={attributes} listeners={listeners} />
         <span className="color-dot" style={{ background: color.border }} />
         <input className="project-name" value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName} />
-        <span className="progress-label">
-          {progress.done}/{progress.total} 완료 ({progress.percent}%)
+        <span className="progress-row">
+          <span className="progress-bar">
+            <span
+              className="progress-fill"
+              style={{ width: `${progress.percent}%`, background: color.border }}
+            />
+          </span>
+          <span className="progress-label">
+            {progress.done}/{progress.total} ({progress.percent}%)
+          </span>
         </span>
+        <button
+          type="button"
+          className={hasNote ? "note-btn has-note" : "note-btn"}
+          onClick={() => setNoteOpen(true)}
+        >
+          메모
+        </button>
         <button type="button" onClick={() => planner.completeProject(project.id)}>
           프로젝트 완료
         </button>
@@ -44,18 +112,28 @@ function ProjectBlock({ project, items, planner }) {
           ✕
         </button>
       </div>
-      <div className="item-list">
-        {activeItems.map((item) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            onUpdate={planner.updateItem}
-            onComplete={planner.completeItem}
-            onDelete={planner.deleteItem}
-          />
-        ))}
-        {activeItems.length === 0 && <p className="empty-hint">할 일이 없습니다.</p>}
-      </div>
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        <div className="item-list">
+          {activeItems.map((item) => (
+            <SortableItemRow
+              key={item.id}
+              item={item}
+              projectId={project.id}
+              onUpdate={planner.updateItem}
+              onComplete={planner.completeItem}
+              onDelete={planner.deleteItem}
+            />
+          ))}
+          {activeItems.length === 0 && <p className="empty-hint">할 일이 없습니다.</p>}
+        </div>
+      </SortableContext>
+      {noteOpen && (
+        <NoteModal
+          project={project}
+          onSave={(text) => planner.updateProject(project.id, { note: text })}
+          onClose={() => setNoteOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -63,7 +141,17 @@ function ProjectBlock({ project, items, planner }) {
 function CategoryBlock({ category, planner }) {
   const [name, setName] = useState(category.name);
   const activeProjects = planner.data.projects.filter((p) => p.categoryId === category.id && !p.completed);
-  const color = categoryColor(category.id);
+  const color = categoryColor(category.id, planner.data.categories);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id,
+    data: { type: "category" },
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    borderTopColor: color.border,
+  };
 
   function commitName() {
     const trimmed = name.trim();
@@ -71,9 +159,12 @@ function CategoryBlock({ category, planner }) {
     else setName(category.name);
   }
 
+  const projectIds = activeProjects.map((p) => p.id);
+
   return (
-    <div className="category-block" style={{ borderLeftColor: color.border }}>
+    <div ref={setNodeRef} style={style} className="category-block">
       <div className="category-header">
+        <DragHandle attributes={attributes} listeners={listeners} />
         <span className="color-dot" style={{ background: color.border }} />
         <input className="category-name" value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName} />
         <button
@@ -85,10 +176,12 @@ function CategoryBlock({ category, planner }) {
           ✕
         </button>
       </div>
-      {activeProjects.map((project) => (
-        <ProjectBlock key={project.id} project={project} items={planner.data.items} planner={planner} />
-      ))}
-      {activeProjects.length === 0 && <p className="empty-hint">프로젝트가 없습니다.</p>}
+      <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
+        {activeProjects.map((project) => (
+          <ProjectBlock key={project.id} project={project} items={planner.data.items} planner={planner} />
+        ))}
+        {activeProjects.length === 0 && <p className="empty-hint">프로젝트가 없습니다.</p>}
+      </SortableContext>
     </div>
   );
 }
@@ -194,6 +287,7 @@ function ItemForm({ categories, projects, onSubmit, onCancel }) {
 export default function HomeView() {
   const planner = usePlanner();
   const [activeForm, setActiveForm] = useState(null); // "category" | "project" | "item" | null
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const categories = planner.data.categories;
   const activeProjects = planner.data.projects.filter((p) => !p.completed);
@@ -202,12 +296,31 @@ export default function HomeView() {
     setActiveForm(null);
   }
 
+  function handleDragEnd(event) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const type = active.data.current?.type;
+    if (type === "category") {
+      planner.reorderCategories(active.id, over.id);
+    } else if (type === "project") {
+      planner.reorderProjects(active.data.current.categoryId, active.id, over.id);
+    } else if (type === "item") {
+      planner.reorderItems(active.data.current.projectId, active.id, over.id);
+    }
+  }
+
+  const categoryIds = categories.map((c) => c.id);
+
   return (
     <div className="home-view">
       {categories.length === 0 && <p className="empty-hint">업무를 추가하며 시작해보세요.</p>}
-      {categories.map((category) => (
-        <CategoryBlock key={category.id} category={category} planner={planner} />
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
+          {categories.map((category) => (
+            <CategoryBlock key={category.id} category={category} planner={planner} />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       <div className="quick-add-bar">
         {activeForm === "category" && (

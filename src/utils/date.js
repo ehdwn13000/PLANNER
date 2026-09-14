@@ -28,3 +28,13 @@ export function isThisWeek(dueDate) {
   const target = new Date(dueDate);
   return target >= start && target < end;
 }
+
+export function isNextWeek(dueDate) {
+  if (!dueDate) return false;
+  const start = startOfWeek(new Date());
+  start.setDate(start.getDate() + 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  const target = new Date(dueDate);
+  return target >= start && target < end;
+}

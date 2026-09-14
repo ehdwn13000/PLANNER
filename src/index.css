@@ -1,19 +1,26 @@
 :root {
-  --bg: #ffffff;
-  --bg-secondary: #f7f7f5;
+  --bg: #faf9f6;
+  --bg-secondary: #f1efe9;
   --bg-hover: rgba(55, 53, 47, 0.06);
-  --text: #37352f;
-  --text-secondary: rgba(55, 53, 47, 0.65);
-  --text-tertiary: rgba(55, 53, 47, 0.45);
+  --text: #33312e;
+  --text-secondary: rgba(51, 49, 46, 0.62);
+  --text-tertiary: rgba(51, 49, 46, 0.42);
   --border: rgba(55, 53, 47, 0.09);
-  --border-strong: rgba(55, 53, 47, 0.16);
+  --border-strong: rgba(55, 53, 47, 0.18);
   --surface: #ffffff;
-  --accent: #2383e2;
-  --accent-bg: rgba(35, 131, 226, 0.1);
-  --danger: #eb5757;
-  --priority-high: #eb5757;
-  --priority-mid: #d9730d;
-  --priority-low: #787774;
+  --accent: #5b8def;
+  --accent-bg: rgba(91, 141, 239, 0.12);
+  --danger: #ef5f4e;
+  --priority-high: #ef5f4e;
+  --priority-mid: #f0b429;
+  --priority-low: #7a8794;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(30, 25, 15, 0.04), 0 4px 14px rgba(30, 25, 15, 0.06);
+  --shadow-card-sm: 0 1px 2px rgba(30, 25, 15, 0.05);
 
   font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
     "Malgun Gothic", Roboto, sans-serif;
@@ -25,17 +32,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #191919;
-    --bg-secondary: #202020;
-    --bg-hover: rgba(255, 255, 255, 0.055);
-    --text: #d4d4d4;
-    --text-secondary: rgba(255, 255, 255, 0.6);
+    --bg: #17181a;
+    --bg-secondary: #1f2124;
+    --bg-hover: rgba(255, 255, 255, 0.06);
+    --text: #e6e4e0;
+    --text-secondary: rgba(255, 255, 255, 0.62);
     --text-tertiary: rgba(255, 255, 255, 0.4);
     --border: rgba(255, 255, 255, 0.09);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --surface: #202020;
-    --accent: #529cca;
-    --accent-bg: rgba(82, 156, 202, 0.15);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --surface: #212327;
+    --accent: #7ba6f5;
+    --accent-bg: rgba(123, 166, 245, 0.16);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(0, 0, 0, 0.3);
+    --shadow-card-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -56,7 +65,7 @@ body {
 h1,
 h2 {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 button {
@@ -65,13 +74,17 @@ button {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
-  border-radius: 4px;
-  padding: 6px 10px;
-  transition: background 0.1s ease;
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 button:hover {
   background: var(--bg-hover);
+}
+
+button:active {
+  transform: scale(0.97);
 }
 
 button:disabled {
@@ -83,20 +96,45 @@ button:disabled:hover {
   background: transparent;
 }
 
+button:disabled:active {
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  padding: 8px 16px;
+  box-shadow: var(--shadow-card-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.06);
+}
+
+.btn-primary:disabled {
+  background: var(--border-strong);
+  color: var(--text-tertiary);
+}
+
 input,
 select {
   font: inherit;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
   background: var(--surface);
   color: var(--text);
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
 input:focus,
 select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 input[type="checkbox"] {
@@ -104,4 +142,65 @@ input[type="checkbox"] {
   width: 16px;
   height: 16px;
   flex: none;
+}
+
+/* 원형 커스텀 체크박스 (Things 스타일) */
+.checkbox-circle {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.checkbox-circle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-circle .checkbox-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.checkbox-circle .checkbox-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: #fff;
+  clip-path: polygon(
+    21% 46%,
+    9% 59%,
+    38% 85%,
+    88% 26%,
+    75% 15%,
+    37% 60%
+  );
+  transition: opacity 0.12s ease;
+}
+
+.checkbox-circle input:checked ~ .checkbox-face {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox-circle input:checked ~ .checkbox-face::after {
+  opacity: 1;
+}
+
+.checkbox-circle input:focus-visible ~ .checkbox-face {
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.checkbox-circle:active .checkbox-face {
+  transform: scale(0.9);
 }

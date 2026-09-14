@@ -34,41 +34,48 @@ function hexToHsl(hex) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// 현대자동차 브랜드 컬러 팔레트 (Hyundai Blue 계열 + Zombie Gray / Tide 뉴트럴)
-const HYUNDAI_PALETTE = [
-  "#002c5f", // Hyundai Blue
-  "#003082", // Strong Navy Blue
-  "#00287a", // Hyundai Blue (Pantone 288 C)
-  "#4c6ea7", // Hyundai Blue 밝은 톤
-  "#99accd", // Hyundai Blue 연한 톤
-  "#60605b", // Zombie Gray
-  "#bfbaaf", // Tide
+// Things 3 스타일의 영역별 파스텔 포인트 컬러. 인접한 업무끼리 색이 겹쳐 보이지 않도록
+// 색상환에서 고르게 떨어진 톤을 배치한다.
+const ACCENT_PALETTE = [
+  "#5B8DEF", // Soft Blue
+  "#F2795A", // Coral
+  "#F0B429", // Amber
+  "#3FB68B", // Mint Green
+  "#9B7EDE", // Lavender
+  "#4FB6C6", // Teal
 ];
 
-function basePaletteColor(seed) {
-  const hex = HYUNDAI_PALETTE[hashString(seed) % HYUNDAI_PALETTE.length];
-  return hexToHsl(hex);
+function paletteIndex(id, list) {
+  const idx = list.findIndex((item) => item.id === id);
+  return idx === -1 ? hashString(id) % ACCENT_PALETTE.length : idx % ACCENT_PALETTE.length;
 }
 
-// 업무(Category)마다 현대차 팔레트에서 고유한 색상을 부여한다.
-export function categoryColor(categoryId) {
-  const { h, s } = basePaletteColor(categoryId);
+// 업무(Category)마다 팔레트에서 순서대로 고유한 색상을 배정한다.
+// (해시 기반으로 무작위 배정하면 업무 수가 적을 때 같은 색 계열로 몰릴 수 있어, 목록 내 순서를 기준으로 배정한다)
+export function categoryColor(categoryId, categories = []) {
+  const hex = ACCENT_PALETTE[paletteIndex(categoryId, categories)];
+  const { h, s } = hexToHsl(hex);
+  const sat = Math.min(s, 68);
   return {
-    border: `hsl(${h} ${s}% 38%)`,
-    bg: `hsl(${h} ${s}% 95%)`,
-    text: `hsl(${h} ${s}% 26%)`,
+    border: `hsl(${h} ${sat}% 56%)`,
+    bg: `hsl(${h} ${sat}% 95%)`,
+    text: `hsl(${h} ${sat}% 34%)`,
   };
 }
 
 // 같은 업무 안의 프로젝트는 업무와 같은 색상(hue/채도)을 유지하되 명도만 다르게 부여해
 // "같은 업무이지만 다른 프로젝트"임을 구분할 수 있게 한다.
-const LIGHTNESS_STEPS = [30, 42, 54, 66];
+const LIGHTNESS_STEPS = [48, 60, 72, 82];
 
-export function projectColor(categoryId, projectId) {
-  const { h, s } = basePaletteColor(categoryId);
-  const lightness = LIGHTNESS_STEPS[hashString(projectId) % LIGHTNESS_STEPS.length];
+export function projectColor(categoryId, projectId, categories = [], projectsInCategory = []) {
+  const hex = ACCENT_PALETTE[paletteIndex(categoryId, categories)];
+  const { h, s } = hexToHsl(hex);
+  const sat = Math.min(s, 68);
+  const idx = projectsInCategory.findIndex((p) => p.id === projectId);
+  const step = idx === -1 ? hashString(projectId) : idx;
+  const lightness = LIGHTNESS_STEPS[step % LIGHTNESS_STEPS.length];
   return {
-    border: `hsl(${h} ${s}% ${lightness}%)`,
-    bg: `hsl(${h} ${s}% 96%)`,
+    border: `hsl(${h} ${sat}% ${lightness}%)`,
+    bg: `hsl(${h} ${sat}% 96%)`,
   };
 }

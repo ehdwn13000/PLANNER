@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { loadData, saveData, generateId } from "../data/plannerStore";
 
 const PlannerContext = createContext(null);
@@ -20,6 +21,15 @@ export function PlannerProvider({ children }) {
       ...d,
       categories: d.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     }));
+  }
+
+  function reorderCategories(activeId, overId) {
+    setData((d) => {
+      const oldIndex = d.categories.findIndex((c) => c.id === activeId);
+      const newIndex = d.categories.findIndex((c) => c.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return d;
+      return { ...d, categories: arrayMove(d.categories, oldIndex, newIndex) };
+    });
   }
 
   function deleteCategory(id) {
@@ -61,6 +71,18 @@ export function PlannerProvider({ children }) {
     updateProject(id, { completed: false, completedAt: null });
   }
 
+  function reorderProjects(categoryId, activeId, overId) {
+    setData((d) => {
+      const scoped = d.projects.filter((p) => p.categoryId === categoryId);
+      const oldIndex = scoped.findIndex((p) => p.id === activeId);
+      const newIndex = scoped.findIndex((p) => p.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return d;
+      const reorderedScoped = arrayMove(scoped, oldIndex, newIndex);
+      const others = d.projects.filter((p) => p.categoryId !== categoryId);
+      return { ...d, projects: [...others, ...reorderedScoped] };
+    });
+  }
+
   function deleteProject(id) {
     setData((d) => ({
       ...d,
@@ -98,19 +120,39 @@ export function PlannerProvider({ children }) {
     completeItem(id, false);
   }
 
+  function reorderItems(projectId, activeId, overId) {
+    setData((d) => {
+      const scoped = d.items.filter((i) => i.projectId === projectId);
+      const oldIndex = scoped.findIndex((i) => i.id === activeId);
+      const newIndex = scoped.findIndex((i) => i.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return d;
+      const reorderedScoped = arrayMove(scoped, oldIndex, newIndex);
+      const others = d.items.filter((i) => i.projectId !== projectId);
+      return { ...d, items: [...others, ...reorderedScoped] };
+    });
+  }
+
   function deleteItem(id) {
     setData((d) => ({ ...d, items: d.items.filter((i) => i.id !== id) }));
   }
 
-  function addQuickNote(text, tag) {
+  function addQuickNote(text, tag, dueDate) {
     const note = {
       id: generateId(),
       text,
       tag,
+      dueDate: dueDate || null,
       completed: false,
       createdAt: new Date().toISOString(),
     };
     setData((d) => ({ ...d, quickNotes: [...d.quickNotes, note] }));
+  }
+
+  function updateQuickNote(id, updates) {
+    setData((d) => ({
+      ...d,
+      quickNotes: d.quickNotes.map((n) => (n.id === id ? { ...n, ...updates } : n)),
+    }));
   }
 
   function toggleQuickNote(id) {
@@ -128,18 +170,22 @@ export function PlannerProvider({ children }) {
     data,
     addCategory,
     updateCategory,
+    reorderCategories,
     deleteCategory,
     addProject,
     updateProject,
     completeProject,
     restoreProject,
+    reorderProjects,
     deleteProject,
     addItem,
     updateItem,
     completeItem,
     restoreItem,
+    reorderItems,
     deleteItem,
     addQuickNote,
+    updateQuickNote,
     toggleQuickNote,
     deleteQuickNote,
   };

@@ -10,7 +10,8 @@ export default function HistoryView() {
     <div className="history-view">
       {tree.length === 0 && <p className="empty-hint">아직 완료된 기록이 없습니다.</p>}
       {tree.map(({ category, projects }) => {
-        const catColor = categoryColor(category.id);
+        const catColor = categoryColor(category.id, planner.data.categories);
+        const categoryProjects = planner.data.projects.filter((p) => p.categoryId === category.id);
         return (
           <div key={category.id} className="history-category">
             <h2>
@@ -18,7 +19,7 @@ export default function HistoryView() {
               {category.name}
             </h2>
             {projects.map(({ project, items }) => {
-              const color = projectColor(category.id, project.id);
+              const color = projectColor(category.id, project.id, planner.data.categories, categoryProjects);
               return (
                 <div key={project.id} className="history-project" style={{ borderLeftColor: color.border }}>
                   <div className="history-project-header">

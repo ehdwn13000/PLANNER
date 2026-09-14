@@ -1,32 +1,23 @@
 import { useState } from "react";
 import { usePlanner } from "../context/PlannerContext";
-import { confirmDelete } from "../utils/confirm";
-
-function NoteRow({ note, onToggle, onDelete }) {
-  return (
-    <div className="note-row">
-      <input type="checkbox" checked={note.completed} onChange={() => onToggle(note.id)} />
-      <span className={note.completed ? "note-text done" : "note-text"}>{note.text}</span>
-      <button type="button" className="icon-btn" title="삭제" onClick={() => confirmDelete() && onDelete(note.id)}>
-        ✕
-      </button>
-    </div>
-  );
-}
+import NoteRow from "./NoteRow";
 
 function AddNoteForm({ tag, onAdd }) {
   const [text, setText] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   function submit(e) {
     e.preventDefault();
     if (!text.trim()) return;
-    onAdd(text.trim(), tag);
+    onAdd(text.trim(), tag, dueDate || null);
     setText("");
+    setDueDate("");
   }
 
   return (
     <form className="add-note-form" onSubmit={submit}>
       <input placeholder="빠르게 적어두기..." value={text} onChange={(e) => setText(e.target.value)} />
+      <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       <button type="submit">추가</button>
     </form>
   );
@@ -44,7 +35,14 @@ export default function NotesView() {
         <AddNoteForm tag="개인" onAdd={planner.addQuickNote} />
         <div className="note-list">
           {personalNotes.map((note) => (
-            <NoteRow key={note.id} note={note} onToggle={planner.toggleQuickNote} onDelete={planner.deleteQuickNote} />
+            <NoteRow
+              key={note.id}
+              note={note}
+              showTag={false}
+              onUpdate={planner.updateQuickNote}
+              onToggle={planner.toggleQuickNote}
+              onDelete={planner.deleteQuickNote}
+            />
           ))}
           {personalNotes.length === 0 && <p className="empty-hint">항목이 없습니다.</p>}
         </div>
@@ -54,7 +52,14 @@ export default function NotesView() {
         <AddNoteForm tag="업무" onAdd={planner.addQuickNote} />
         <div className="note-list">
           {workNotes.map((note) => (
-            <NoteRow key={note.id} note={note} onToggle={planner.toggleQuickNote} onDelete={planner.deleteQuickNote} />
+            <NoteRow
+              key={note.id}
+              note={note}
+              showTag={false}
+              onUpdate={planner.updateQuickNote}
+              onToggle={planner.toggleQuickNote}
+              onDelete={planner.deleteQuickNote}
+            />
           ))}
           {workNotes.length === 0 && <p className="empty-hint">항목이 없습니다.</p>}
         </div>
