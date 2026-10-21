@@ -167,6 +167,9 @@ function CategoryBlock({ category, planner }) {
         <DragHandle attributes={attributes} listeners={listeners} />
         <span className="color-dot" style={{ background: color.border }} />
         <input className="category-name" value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName} />
+        <button type="button" onClick={() => planner.endCategory(category.id)}>
+          업무 종료
+        </button>
         <button
           type="button"
           className="icon-btn"
@@ -290,6 +293,7 @@ export default function HomeView() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const categories = planner.data.categories;
+  const activeCategories = categories.filter((c) => !c.ended);
   const activeProjects = planner.data.projects.filter((p) => !p.completed);
 
   function closeForm() {
@@ -309,14 +313,14 @@ export default function HomeView() {
     }
   }
 
-  const categoryIds = categories.map((c) => c.id);
+  const categoryIds = activeCategories.map((c) => c.id);
 
   return (
     <div className="home-view">
-      {categories.length === 0 && <p className="empty-hint">업무를 추가하며 시작해보세요.</p>}
+      {activeCategories.length === 0 && <p className="empty-hint">업무를 추가하며 시작해보세요.</p>}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
-          {categories.map((category) => (
+          {activeCategories.map((category) => (
             <CategoryBlock key={category.id} category={category} planner={planner} />
           ))}
         </SortableContext>
@@ -334,7 +338,7 @@ export default function HomeView() {
         )}
         {activeForm === "project" && (
           <ProjectForm
-            categories={categories}
+            categories={activeCategories}
             onSubmit={(categoryId, name) => {
               planner.addProject(categoryId, name);
               closeForm();
@@ -344,7 +348,7 @@ export default function HomeView() {
         )}
         {activeForm === "item" && (
           <ItemForm
-            categories={categories}
+            categories={activeCategories}
             projects={activeProjects}
             onSubmit={(projectId, payload) => {
               planner.addItem(projectId, payload);
@@ -358,7 +362,7 @@ export default function HomeView() {
             <button type="button" onClick={() => setActiveForm("category")}>
               + 업무 추가
             </button>
-            <button type="button" onClick={() => setActiveForm("project")} disabled={categories.length === 0}>
+            <button type="button" onClick={() => setActiveForm("project")} disabled={activeCategories.length === 0}>
               + 프로젝트 추가
             </button>
             <button type="button" onClick={() => setActiveForm("item")} disabled={activeProjects.length === 0}>

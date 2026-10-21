@@ -4,7 +4,7 @@ import { loadData, saveData, generateId } from "../data/plannerStore";
 
 const PlannerContext = createContext(null);
 
-const EMPTY_DATA = { categories: [], projects: [], items: [], quickNotes: [] };
+const EMPTY_DATA = { categories: [], projects: [], items: [], quickNotes: [], folders: [] };
 
 export function PlannerProvider({ children }) {
   const [data, setData] = useState(EMPTY_DATA);
@@ -30,7 +30,14 @@ export function PlannerProvider({ children }) {
   }, [data]);
 
   function addCategory(name) {
-    const category = { id: generateId(), name, createdAt: new Date().toISOString() };
+    const category = {
+      id: generateId(),
+      name,
+      ended: false,
+      endedAt: null,
+      folderId: null,
+      createdAt: new Date().toISOString(),
+    };
     setData((d) => ({ ...d, categories: [...d.categories, category] }));
   }
 
@@ -39,6 +46,14 @@ export function PlannerProvider({ children }) {
       ...d,
       categories: d.categories.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     }));
+  }
+
+  function endCategory(id) {
+    updateCategory(id, { ended: true, endedAt: new Date().toISOString() });
+  }
+
+  function restoreCategory(id) {
+    updateCategory(id, { ended: false, endedAt: null });
   }
 
   function reorderCategories(activeId, overId) {
@@ -60,6 +75,26 @@ export function PlannerProvider({ children }) {
         items: d.items.filter((i) => !projectIds.includes(i.projectId)),
       };
     });
+  }
+
+  function addFolder(name) {
+    const folder = { id: generateId(), name, createdAt: new Date().toISOString() };
+    setData((d) => ({ ...d, folders: [...d.folders, folder] }));
+  }
+
+  function updateFolder(id, updates) {
+    setData((d) => ({
+      ...d,
+      folders: d.folders.map((f) => (f.id === id ? { ...f, ...updates } : f)),
+    }));
+  }
+
+  function deleteFolder(id) {
+    setData((d) => ({
+      ...d,
+      folders: d.folders.filter((f) => f.id !== id),
+      categories: d.categories.map((c) => (c.folderId === id ? { ...c, folderId: null } : c)),
+    }));
   }
 
   function addProject(categoryId, name) {
@@ -190,6 +225,7 @@ export function PlannerProvider({ children }) {
       projects: newData?.projects ?? [],
       items: newData?.items ?? [],
       quickNotes: newData?.quickNotes ?? [],
+      folders: newData?.folders ?? [],
     });
   }
 
@@ -199,8 +235,13 @@ export function PlannerProvider({ children }) {
     replaceAll,
     addCategory,
     updateCategory,
+    endCategory,
+    restoreCategory,
     reorderCategories,
     deleteCategory,
+    addFolder,
+    updateFolder,
+    deleteFolder,
     addProject,
     updateProject,
     completeProject,

@@ -6,6 +6,9 @@
 Category (Level 1)
 ├─ id: string
 ├─ name: string
+├─ ended: boolean         // 수동 종료 처리 (Project의 완료와 구분되는 용어)
+├─ endedAt: string | null
+├─ folderId: string | null // 소속 Folder (히스토리 화면 정리용, 없으면 미분류)
 └─ createdAt: string (ISO)
 
 Project (Level 2)
@@ -34,6 +37,11 @@ QuickNote (빠른 메모, 계층 없음)
 ├─ dueDate: string | null   // 지정 시 주간 뷰(이번 주/다음 주)에도 함께 표시
 ├─ completed: boolean
 └─ createdAt: string
+
+Folder (히스토리 화면 정리용, 계층 없음)
+├─ id: string
+├─ name: string
+└─ createdAt: string
 ```
 
 ## 저장 방식
@@ -43,7 +51,8 @@ QuickNote (빠른 메모, 계층 없음)
   "categories": [],
   "projects": [],
   "items": [],
-  "quickNotes": []
+  "quickNotes": [],
+  "folders": []
 }
 ```
 - 서버/DB 없음. 추후 필요 시 서버 동기화로 확장 가능하도록 데이터 접근 로직을 한 곳(데이터 레이어)에 모아둔다.
@@ -51,11 +60,11 @@ QuickNote (빠른 메모, 계층 없음)
 ## 화면별 데이터 조회 규칙
 | 화면 | 조회 로직 |
 |---|---|
-| 기본 화면 | categories → 각 category의 projects(completed=false) → 각 project의 items(completed=false), 완료율 = completed items / total items |
+| 기본 화면 | categories(ended=false) → 각 category의 projects(completed=false) → 각 project의 items(completed=false), 완료율 = completed items / total items |
 | 오늘 할 일 | items.filter(dueDate == 오늘 && completed == false) |
 | 급한 일 보기 | items.filter(completed == false), dueDate 오름차순 정렬 |
 | 주간 뷰 | items.filter(completed == false && (dueDate가 이번 주 이내 이거나 dueDate 존재)), 마감(이번 주 마감)/진행중(그 외 미완료)/지연(dueDate < 오늘) 구분하여 색상 표시 |
-| 히스토리 | categories → projects(completed=true 포함) → items(completed=true), 구조 그대로 표시 |
+| 히스토리 | categories → projects(completed=true 포함) → items(completed=true), 구조 그대로 표시. category.ended=true인 경우 project/item의 완료 여부와 무관하게 전체 스냅샷 표시. folders로 category를 그룹핑(folderId 기준), 미배정은 미분류로 표시 |
 
 ## 설계 원칙 (앱 확장 대비)
 - **데이터 레이어**와 **UI(화면) 레이어**를 분리한다.

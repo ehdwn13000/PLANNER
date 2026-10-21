@@ -3,15 +3,16 @@ import { supabase, PLANNER_ROW_ID } from "./supabaseClient";
 const TABLE = "planner_data";
 
 function emptyData() {
-  return { categories: [], projects: [], items: [], quickNotes: [] };
+  return { categories: [], projects: [], items: [], quickNotes: [], folders: [] };
 }
 
 function normalize(parsed) {
   return {
-    categories: parsed?.categories ?? [],
+    categories: (parsed?.categories ?? []).map((c) => ({ ended: false, endedAt: null, folderId: null, ...c })),
     projects: parsed?.projects ?? [],
     items: parsed?.items ?? [],
     quickNotes: parsed?.quickNotes ?? [],
+    folders: parsed?.folders ?? [],
   };
 }
 
