@@ -98,6 +98,7 @@ function FolderForm({ onSubmit, onCancel }) {
 export default function HistoryView() {
   const planner = usePlanner();
   const [addingFolder, setAddingFolder] = useState(false);
+  const [collapsedFolders, setCollapsedFolders] = useState({});
 
   const tree = getHistoryTree(planner.data);
   const folders = planner.data.folders;
@@ -109,15 +110,28 @@ export default function HistoryView() {
     if (trimmed && trimmed !== folder.name) planner.updateFolder(folder.id, { name: trimmed });
   }
 
+  function toggleFolder(folderId) {
+    setCollapsedFolders((c) => ({ ...c, [folderId]: !c[folderId] }));
+  }
+
   return (
     <div className="history-view">
       {isEmpty && <p className="empty-hint">아직 완료된 기록이 없습니다.</p>}
 
       {folders.map((folder) => {
         const entries = tree.filter(({ category }) => category.folderId === folder.id);
+        const collapsed = Boolean(collapsedFolders[folder.id]);
         return (
           <div key={folder.id} className="history-folder">
             <div className="history-folder-header">
+              <button
+                type="button"
+                className="history-folder-toggle"
+                title={collapsed ? "펼치기" : "접기"}
+                onClick={() => toggleFolder(folder.id)}
+              >
+                {collapsed ? "▸" : "▾"}
+              </button>
               <input
                 className="history-folder-name"
                 defaultValue={folder.name}
@@ -135,10 +149,14 @@ export default function HistoryView() {
                 ✕
               </button>
             </div>
-            {entries.length === 0 && <p className="empty-hint">이 폴더에 배정된 업무가 없습니다.</p>}
-            {entries.map(({ category, projects }) => (
-              <CategoryHistoryBlock key={category.id} category={category} projects={projects} planner={planner} />
-            ))}
+            {!collapsed && (
+              <>
+                {entries.length === 0 && <p className="empty-hint">이 폴더에 배정된 업무가 없습니다.</p>}
+                {entries.map(({ category, projects }) => (
+                  <CategoryHistoryBlock key={category.id} category={category} projects={projects} planner={planner} />
+                ))}
+              </>
+            )}
           </div>
         );
       })}

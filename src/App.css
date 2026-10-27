@@ -648,6 +648,13 @@
   gap: 8px;
 }
 
+.history-folder-toggle {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  width: 20px;
+  flex: none;
+}
+
 .history-folder-name {
   font-size: 15px;
   font-weight: 700;
